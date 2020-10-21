@@ -1,60 +1,35 @@
-#!/usr/bin/python
+from math import sqrt, atan, exp, cos, sin, log
+from random import random, randint
 
-import sys
-import random
-import math
+def mean(x):
+    return sum(x) / float(len(x))
 
-# subprogram definitions
-def minimum(a):
-    n = len(a)
-    if n is 0: return None
-    else: return min(a)
+def dev(x, m):
+    return list(map(lambda y: y - m, x))
 
-def maximum(a):
-    n = len(a)
-    if n is 0: return None
-    else: return max(a)
+def adev(x, m):
+    return list(map(lambda y: abs(y - m), x))
 
-def median(a):
-    n = len(a)
-    if n is 0: return None
-    if n%2 is not 0: return quick_select(n/2+1, a)
-    else: return (quick_select(n/2,a)+quick_select(n/2+1,a))/2.
+def popvar(ls):
+    n = len(ls)
+    mu = mean(ls)
+    xdev = dev(ls, mu)
+    return sum(map(lambda x: x**2, xdev)) / n
 
-def mean(a):
-    n = len(a)
-    if n is 0: return None
-    s = 0.
-    for i in range(0, n): s += a[i]
-    return s / n
-    
-def population_variance(a):
-    n = len(a)
-    if n is 0: return None
-    m = mean(a)
-    s = 0.
-    for x in a:
-            s += (x-m)**2
-    return s / n
+def samvar(ls):
+    n = len(ls)
+    mu = mean(ls)
+    xdev = dev(ls, mu)
+    return sum(map(lambda x: x**2, xdev)) / (n - 1)
 
-def sample_variance(a):
-    n = len(a)
-    if n is 0: return None
-    m = mean(a)
-    s = 0.
-    for x in a:
-            s += (x-m)**2
-    return s / (n - 1)
-    
-def population_standard_deviation(a):
-    return math.sqrt(population_variance(a))
+def popstd(x):
+    return sqrt(popvar(x))
 
-def sample_standard_deviation(a):
-    return math.sqrt(sample_variance(a))
+def samstd(x):
+    return sqrt(samvar(x))
 
-# C. A. R. Hoare 1961
-def quick_select(k, a):
-    n = len(a)
+def quickselect(x, k):
+    n = len(x)
     if n is 0 or k < 1 or k > n: return None
     k -= 1
     left = 0
@@ -62,12 +37,12 @@ def quick_select(k, a):
     idx = []
     for i in range(0, n): idx.append(i)
     while left < right:
-        pivot = a[idx[k]]
+        pivot = x[idx[k]]
         i = left
         j = right
         while True:
-            while a[idx[i]] < pivot: i += 1
-            while pivot < a[idx[j]]: j -= 1
+            while x[idx[i]] < pivot: i += 1
+            while pivot < x[idx[j]]: j -= 1
             if i <= j:
                 tmp = idx[i]
                 idx[i] = idx[j]
@@ -77,45 +52,68 @@ def quick_select(k, a):
             if i > j: break
         if j < k: left = i
         if k < i: right = j
-    return a[idx[k]]
+    return x[idx[k]]
 
-def absolute_deviations(a):
-    n = len(a)
+def median(x):
+    n = len(x)
     if n is 0: return None
-    m = median(a)
-    dev = []
-    for x in a: dev.append(abs(x-m))
-    return dev
-    
-def median_deviation(a):
-    n = len(a)
-    if n is 0: return None
-    else: return median(absolute_deviations(a))
+    if n%2 is not 0: return quickselect(x, n/2+1)
+    else: return (quickselect(x,n/2)+quickselect(x,n/2+1))/2.
 
-# initialization block
-data_set = []
-n = 0
-# input block
-filename = sys.argv[1]
-infile = open(filename, 'r')
-for record in infile: 
-    data_set.append(float(record))
-    n += 1
-infile.close()
-# processing block
-stat_list = []
-stat_list.append('minimum = ' + str(minimum(data_set)))
-stat_list.append('maximim = ' + str(maximum(data_set)))
-stat_list.append('mean = ' + str(mean(data_set)))
-stat_list.append('population variance = ' + str(population_variance(data_set)))
-stat_list.append('population standard deviation = ' + str(population_standard_deviation(data_set)))
-stat_list.append('sample variance = ' + str(sample_variance(data_set)))
-stat_list.append('sample standard deviation = ' + str(sample_standard_deviation(data_set)))
-stat_list.append('median = ' + str(median(data_set)))
-stat_list.append('median deviation = ' + str(median_deviation(data_set)))
-# output block
-if len(data_set) <= 50: print data_set
-print 'n = ', n
-for stat in stat_list:
-    print stat
-if len(data_set) <= 50: print data_set
+def median_deviation(x):
+    return median(adev(x, median(x)))
+
+def mean_deviation(x):
+    return mean(adev(x, mean(x)))
+
+def popskw(x):
+    n = len(x)
+    m = (sum(map(lambda(y): y**3, dev(x, mean(x))))) / n
+    return m / (popstd(x))**3
+
+def samskw(x):
+    return ((sum(map(lambda(y):y**3,dev(x,mean(x)))))/len(x))/((samstd(x))**3)
+
+def nonparametric_skew(x):
+    return (mean(x) - median (x)) / popstd(x)
+
+def covariance(x, y):
+    xdev = dev(x, mean(x))
+    ydev = dev(y, mean(y))
+    n = min(len(xdev), len(ydev))
+    return sum([xdev[i] * ydev[i] for i in range(n)]) / float(n)
+
+def correlation_coefficient(x, y):
+    return covariance(x, y) / (popstd(x) * popstd(y))
+
+def normal_distribution(n):
+    pi = 4.*atan(1.)
+    mu = n/2.
+    sd = n/6.018
+    normal = []
+    for x in xrange(1, n+1):
+        y = (1./(sd*sqrt(2.*pi)))*exp(-.5*((x-mu)/sd)**2)
+        normal.append(sd*y)
+    return normal
+
+def random_uniform(n):
+    ls = []
+    for x in xrange(0, n): ls.append(random())
+    return ls
+
+def random_normal(n):
+    pi = 4.*atan(1.)
+    ls = []
+    for x in xrange(0, n/2):
+        ls.append(sqrt(-2.0*log(random()))*cos(2.0*pi*random()))
+        ls.append(sqrt(-2.0*log(random()))*sin(2.0*pi*random()))
+    return ls
+
+def randnorm(n):
+    ls = random_normal(n)
+    a = min(ls)
+    b = max(ls)
+    c = max(-a, b)
+    r = 2*c
+    d = (r-(b-a))/2
+    return map(lambda x: (x-a+d)/r, ls)
